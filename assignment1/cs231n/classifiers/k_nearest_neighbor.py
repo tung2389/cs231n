@@ -103,8 +103,10 @@ class KNearestNeighbor(object):
             #######################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+            # vectorized for loop of numpy is faster than normal for loop
+            # Must specify axis = 1 because the np power returns shape (5000, 3072)
+            dists[i,:] = np.sqrt(np.sum(np.power(X[i] - self.X_train, 2), axis = 1))
             pass
-
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
 
@@ -132,7 +134,21 @@ class KNearestNeighbor(object):
         #       and two broadcast sums.                                         #
         #########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        
+        # Use broadcasting, matrix multiplication and the equation: (x-y)^2 = x^2 + y^2 - 2xy
+        
+        # Prepare for broadcasting
+        sum_squared_test = np.sum(np.square(X), axis = 1)
+        sum_squared_train = np.sum(np.square(self.X_train), axis = 1)
+        reshaped_test = sum_squared_test.reshape(num_test, 1)
+        reshaped_train = sum_squared_train.reshape(1, num_train)
+        
+        # Use broadcasting to calculate the 'x^2 + y^2' part
+        sum_of_squared = reshaped_test + reshaped_train
+        # Use matrix multiplication to calculate the '2xy' part
+        product = 2 * np.matmul(X, self.X_train.T)
+        # Final result
+        dists = np.sqrt(sum_of_squared - product)
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
