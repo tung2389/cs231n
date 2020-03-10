@@ -79,6 +79,7 @@ def svm_loss_vectorized(W, X, y, reg):
     """
     loss = 0.0
     dW = np.zeros(W.shape) # initialize the gradient as zero
+    num_train = X.shape[0] # Added line
 
     #############################################################################
     # TODO:                                                                     #
@@ -87,10 +88,18 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    # Use matrix multiplication. (49000,3073) * (3073,10) = (49000, 10). Now scores has shape (49000, 10)
+    # Use matrix multiplication. (500,3073) * (3073,10) = (500, 10). Now scores has shape (500, 10)
     scores = np.matmul(X, W)
-    # correct_class_scores has shape (49000,), holding each training sample's correct class score
-    correct_class_scores = scores[:, y]
+    # a vectorized technique: scores[[1,2],[3,4]] will return [ scores[1][3] and scores[2,4] ]
+    # correct_class_scores has shape (500,), holding each training sample's correct class score
+    correct_class_scores = scores[ np.arange(num_train), y ].reshape(num_train, 1)
+    delta = 1
+    # Loss of all samples with respect to each class: loss_of_samples_and_classes[i, j] is the loss of sample i with respect to class j
+    loss_of_samples_and_classes = np.maximum(0, scores - correct_class_scores + delta)
+    # Skip scores of correct class. 
+    loss_of_samples_and_classes[ np.arange(num_train), y] = 0
+    # Sum up all the losses and average the sum to find the final loss
+    loss = np.sum(loss_of_samples_and_classes) / num_train
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
