@@ -39,15 +39,19 @@ def svm_loss_naive(W, X, y, reg):
                 loss += margin
                 # We are calculating the gradient, not gradient descent (negative gradient)
                 # (W[:, j] * Xi)' = X[i]; (- W[:, y[i]] * Xi)' = -X[i]
-                dW[:, j] = dW[:, j] + X[i]
-                dW[:, y[i]] = d[:, y[i]] - X[i]
+                dW[:, j] = dW[:, j] + X[i] # Added line
+                dW[:, y[i]] = dW[:, y[i]] - X[i] # Added line
 
     # Right now the loss is a sum over all training examples, but we want it
     # to be an average instead so we divide by num_train.
     loss /= num_train
+    dW /= num_train # Added line
 
     # Add regularization to the loss.
     loss += reg * np.sum(W * W)
+    # Calculate the gradient of reg * np.sum(W * W): (reg * np.sum(W^2))' = 2 * reg *  W
+    dW += 2 * reg * W # Added line
+
 
     #############################################################################
     # TODO:                                                                     #
@@ -83,6 +87,10 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+    # Use matrix multiplication. (49000,3073) * (3073,10) = (49000, 10). Now scores has shape (49000, 10)
+    scores = np.matmul(X, W)
+    # correct_class_scores has shape (49000,), holding each training sample's correct class score
+    correct_class_scores = scores[:, y]
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
