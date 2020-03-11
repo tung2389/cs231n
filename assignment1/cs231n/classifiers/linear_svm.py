@@ -80,6 +80,8 @@ def svm_loss_vectorized(W, X, y, reg):
     loss = 0.0
     dW = np.zeros(W.shape) # initialize the gradient as zero
     num_train = X.shape[0] # Added line
+    num_classes = W.shape[1] # Added line
+    num_dims = X.shape[1] # Added line
 
     #############################################################################
     # TODO:                                                                     #
@@ -91,7 +93,7 @@ def svm_loss_vectorized(W, X, y, reg):
     # Use matrix multiplication. (500,3073) * (3073,10) = (500, 10). Now scores has shape (500, 10)
     scores = np.matmul(X, W)
     # a vectorized technique: scores[[1,2],[3,4]] will return [ scores[1][3] and scores[2,4] ]
-    # correct_class_scores has shape (500,), holding each training sample's correct class score
+    # correct_class_scores has shape (500,), holding each training sample's correct class score. scores[:, y] won't work
     correct_class_scores = scores[ np.arange(num_train), y ].reshape(num_train, 1)
     delta = 1
     # Loss of all samples with respect to each class: loss_of_samples_and_classes[i, j] is the loss of sample i with respect to class j
@@ -114,6 +116,17 @@ def svm_loss_vectorized(W, X, y, reg):
     # loss.                                                                     #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+
+    arr1 = np.where(loss_of_samples_and_classes > 0, 1, 0).reshape(num_train, num_classes, 1)
+    train_data = X.reshape(num_train, 1, num_dims)
+    gradient_arr = np.matmul(arr1, train_data)
+    add = np.sum(gradient_arr, axis=0).T
+    minus = np.sum(gradient_arr, axis=1)
+    dW = dW + add
+    dW[:, y] = (dW[:, y].T - minus[np.arange(num_train)]).T
+
+    dW /= num_train
+    dW += 2 * reg * W
 
     pass
 
