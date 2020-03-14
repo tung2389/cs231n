@@ -102,6 +102,7 @@ def svm_loss_vectorized(W, X, y, reg):
     loss_of_samples_and_classes[ np.arange(num_train), y] = 0
     # Sum up all the losses and average the sum to find the final loss
     loss = np.sum(loss_of_samples_and_classes) / num_train
+    loss += reg * np.sum(W * W)
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -117,13 +118,45 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    arr1 = np.where(loss_of_samples_and_classes > 0, 1, 0).reshape(num_train, num_classes, 1)
-    train_data = X.reshape(num_train, 1, num_dims)
-    gradient_arr = np.matmul(arr1, train_data)
-    add = np.sum(gradient_arr, axis=0).T
-    minus = np.sum(gradient_arr, axis=1)
-    dW = dW + add
-    dW[:, y] = (dW[:, y].T - minus[np.arange(num_train)]).T
+    # Below is not an optimized solution. It is my first trial to calculate gradient:
+    # My idea for this solution: notice that in svm_loss_naive, each dW[:, j] plus X[i] up to num_train times
+    # Besides, for each i, dW[:, y[i]] minus X[i] up to num_classes time.
+    # Therefore we can accumulate the sum of X[i] to update dW[:, j] and dW[:, y[i]] minus X[i]
+    # We create an array arr1 based on loss_of_samples_and_classes, containing values 0 or 1. Then we multiply
+    # the training data matrix with the arr1 matrix. The accumulated sum (to update dW[:, j]) can be calculated according to column (across num_train)
+    # ,and the accumulated sum of - X[i] can be calculated according to rows (across num_classes)
+    #
+    #
+    # arr1 = np.where(loss_of_samples_and_classes > 0, 1, 0).reshape(num_train, num_classes, 1)
+    # train_data = X.reshape(num_train, 1, num_dims)
+    # gradient_arr = np.matmul(arr1, train_data)
+    # add = np.sum(gradient_arr, axis=0).T # Calculate accoring to column
+    # minus = np.sum(gradient_arr, axis=1) # Shape (500, 3073), Calculate according to row
+    # dW = dW + add
+    # for i in range(num_train):
+    #     dW[:, y[i]] = dW[:, y[i]] - minus[i]
+    #
+    #
+    # Why we don't use dW[:, y] = (dW[:, y].T - minus[np.arange(num_train)]).T ? This will not work. 
+    # Numpy vectorization cannot calculate from previous value. So if we use this way, we are forced 
+    # to use a for loop
+
+    # Here is the true solution:
+
+    count_matrix = loss_of_samples_and_classes
+    # If have any loss greater than 0, the value of that element in count_matrix is one
+    count_matrix[count_matrix > 0] = 1
+    # Count the number of time 'margin > 0' in every training example. It is also the number of the operation
+    # dW[:, y[i]] = dW[:, y[i]] - X[i] in one training example.
+    count_real_loss = np.sum(count_matrix, axis=1)
+    # Count the final number n in the accumulated operation: dW[:, y[i]] - n*X[i]. If count_matrix[2,3] = -2,
+    # then dW[:, 3] will minus X[2] 2 times (including the + X[i] in dW[:, J])
+    count_matrix[np.arange(num_train), y] = count_matrix[np.arange(num_train), y] - count_real_loss
+    # Then multiply X.T with count_matrix to calculate new dW. Basically, in this solution, instead of
+    # using dW[:, j] += X[i], we add each element of X[i] to or subtract it from the corresponding element
+    # of dW. For example, dw[0, 2] += X[1, 0], dW[1, 2] += X[1, 1], dW[2,2] += X[1, 2], dW[3, 2] += X[1, 3], dW[n, 2] += X[1, n]
+    # This accumulation gives us dW[:, 2] += X[1]
+    dW = np.matmul(X.T, count_matrix)
 
     dW /= num_train
     dW += 2 * reg * W
