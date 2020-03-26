@@ -39,7 +39,7 @@ def softmax_loss_naive(W, X, y, reg):
 
     for i in range(num_train):
       sample_score = scores[i]
-      sample_score -= np.max(sample_score) # Prevent numerical unstability due to large numbers
+      sample_score -= np.max(sample_score) # Prevent numerical instability due to large numbers
       # Exponential of correct class
       correct_exp = np.exp(sample_score[y[i]])
       # Sum of exponentials of all classes
@@ -89,6 +89,7 @@ def softmax_loss_vectorized(W, X, y, reg):
     num_classes = W.shape[1]
 
     scores = np.matmul(X, W)
+    scores -= np.max(scores) # Avoid numerical instability
 
     # Use broacasting rule: [a,b] / [c,d] = [a/c, b/d] => [correct_exp[i]  / sum_exp[i]]
     correct_exp_arr = np.exp(scores[np.arange(num_train), y])

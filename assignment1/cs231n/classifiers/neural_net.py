@@ -70,7 +70,8 @@ class TwoLayerNet(object):
         W1, b1 = self.params['W1'], self.params['b1']
         W2, b2 = self.params['W2'], self.params['b2']
         N, D = X.shape
-
+        num_train = N # Added line
+        num_dims = D  # Added line
         # Compute the forward pass
         scores = None
         #############################################################################
@@ -79,7 +80,12 @@ class TwoLayerNet(object):
         # shape (N, C).                                                             #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        # layer1 (first fully connected layer) scores of all samples. layer1_scores[i] represents 10 scores of ten neurons of sample i
+        layer1_scores = np.matmul(X, W1) + b1
+        # "The network uses a ReLU nonlinearity after the first fully connected layer."
+        ReLU_layer = np.maximum(0, layer1_scores)
+        output_layer = np.matmul(ReLU_layer, W2) + b2
+        scores = layer2_scores
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -98,6 +104,15 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+        scores -= np.max(scores) # Avoid numerical instability
+        scores_exp = np.exp(scores)
+        correct_exp_arr = scores_exp[np.arange(num_train), y]
+        sum_exp_arr = np.sum(scores_exp[np.arange(num_train)], axis=1)
+        loss = np.sum( -np.log(correct_exp_arr / sum_exp_arr) )
+
+        loss /= num_train
+        loss += reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
+        
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
