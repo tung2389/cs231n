@@ -80,12 +80,13 @@ class TwoLayerNet(object):
         # shape (N, C).                                                             #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        # layer1 (first fully connected layer) scores of all samples. layer1_scores[i] represents 10 scores of ten neurons of sample i
-        layer1_scores = np.matmul(X, W1) + b1
-        # "The network uses a ReLU nonlinearity after the first fully connected layer."
-        ReLU_layer = np.maximum(0, layer1_scores)
-        output_layer = np.matmul(ReLU_layer, W2) + b2
-        scores = layer2_scores
+        # X1 holds first fully connected layer scores of all samples. X1[i] represents 10 scores of ten neurons of sample i
+        X1 = np.matmul(X, W1) + b1
+        # "The network uses a ReLU nonlinearity after the first fully connected layer." Use ReLu activation function
+        X1_activation = np.maximum(0, layer1_scores)
+        # Output layer
+        X2 = np.matmul(X1_activation, W2) + b2
+        scores = X2
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -104,6 +105,7 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+        # scores = X2
         scores -= np.max(scores) # Avoid numerical instability
         scores_exp = np.exp(scores)
         correct_exp_arr = scores_exp[np.arange(num_train), y]
@@ -125,6 +127,51 @@ class TwoLayerNet(object):
         # grads['W1'] should store the gradient on W1, and be a matrix of same size #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+
+        # To calculate dL_dW2, use the same way as we calculate the gradient in softmax vectorized
+        # See softmax_vectorized in sotfmax.py for more details
+        reshaped_sum_exp = sum_exp_arr[:].reshape(num_train, 1)
+        # Calculate e^f(yj) / sum_exp for every j in every training sample.
+        count_matrix = scores_exp / reshaped_sum_exp # (1)
+        # Add -1 part in both dL_dW[:, yi] = X[i] * (-1 + ( e^(f(yi)) / sum_exp) ) and dL / db2[yi]  = -1 + ( e^f(yi) / sum_exp )
+        count_matrix[np.arange(num_train), y] = -1  
+
+        # dl_dX2 calculated based on the formula L = Σ ( -f(yi) + log Σ ( e^(f(yj)) ) ), using partial derivative on every element f of X2
+        dL_dX2 = count_matrix
+        dX2_dW2 = X1.activation.T
+        dX2_dX1act = W2.T
+        # Chain rule
+        dL_dW2 = np.matmul(dL_dX2, dX2_dW2)
+        dL_dX1act = np.matmul(dL_dX2, dX2_dX1act)
+        # dL / db2[yi]  = -1 + e^f(yi) / sum_exp. Add the -1 part to the dL / db2[yi] first
+        # dL / db2[j] = e^f(yj) / sum_exp
+        # every j in dL / db2[j] in a training example are added with e^f(yj) / sum_exp (we do that in (1)). So we just need to sum according to column in count_matrix to calculate dL / db2
+        dL_db2 = np.sum(dL_dX2, axis=0)
+        
+        # (ReLU(X))' =  signum(ReLU(x)). If X > 0, then (ReLU(X))' = 1. Else (ReLU(X))' = 0
+        dX1act_dX1 = np.sign(X1_activation)
+        dX1_dW1 = X.T
+        # Chain rule
+        dL_dX1 = np.matmul(dL_dX1act, dX1act_dX1)
+        dL_dW1 = np.matmul(dL_dX1, dX1_dW1)
+        dL_db1 = np.sum(dL_dX1, axis=0)
+
+        dL_dW1 /= num_train
+        dL_dW2 /= num_train
+        dL_db1 /= num_train
+        dL_db2 /= num_train
+
+        dL_dW1 += 2 * reg * W1
+        dL_dW2 += 2 * reg * W2
+
+        grads['W1'] = dL_dW1
+        grads['W2'] = dL_dW2
+        grads['b1'] = dL_db1
+        grads['b2'] = dL_db2
+
+        # Why dL_db2 = np.sum(dL_dX2, axis=0) and dL_db1 = np.sum(dL_dX1, axis=0)?
+        # Because of broadcasting rule, we can write X2 = W2 . X1 + np.matmul(np.ones(num_train, 1), b2.reshape(1,output_size))
+        # => dX2 / db2 = np.ones(num_train, 1). Then np.matmul(dL_dX2.T, dX2 / db2) is basically the sum of dL_dX2.T along the rows
 
         pass
 
