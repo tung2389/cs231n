@@ -171,7 +171,11 @@ class TwoLayerNet(object):
 
         # Why dL_db2 = np.sum(dL_dX2, axis=0) and dL_db1 = np.sum(dL_dX1, axis=0)?
         # Because of broadcasting rule, we can write X2 = W2 . X1 + np.matmul(np.ones(num_train, 1), b2.reshape(1,output_size))
-        # => dX2 / db2 = np.ones(num_train, 1). Then np.matmul(dL_dX2.T, dX2 / db2) is basically the sum of dL_dX2.T along the rows
+        # => dX2_db2 = np.ones(num_train, 1). Then np.matmul(dL_dX2.T, dX2_db2) is basically the sum of dL_dX2.T along the rows
+
+        # A more easy way to understand it. dL_dX2[i] shows us the derivative of dL with respect to example X2[i]. 
+        # The derivative of X2[i] with respect to b2 is a vector of 1. Therefore, dL_b2 (in example i) = dL_X2[i] x dX2[i]_db2 = dL_X2[i].
+        # We can see that finally, the dL_b2 is the accumulation of every example dL_X2[i]. That's why we can use dL_db2 = np.sum(dL_dX2, axis=0)
 
         pass
 
